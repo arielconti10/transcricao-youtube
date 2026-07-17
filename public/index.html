@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f3ed" />
+    <meta
+      name="description"
+      content="Transforme a fala de um vídeo público do YouTube numa transcrição fácil de ler."
+    />
+    <title>Transcrição fácil</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="app-shell" id="app" aria-busy="false">
+      <header class="page-heading">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div>
+          <p class="eyebrow">Ouvir em texto</p>
+          <h1>Transcrição fácil</h1>
+          <p class="intro">
+            Cole o link de um vídeo público do YouTube para transformar a fala
+            em texto.
+          </p>
+        </div>
+      </header>
+
+      <section class="surface entry-view" id="entry-view" aria-labelledby="form-title">
+        <h2 class="visually-hidden" id="form-title">Preparar uma transcrição</h2>
+        <form id="transcription-form" novalidate>
+          <div class="field-group">
+            <label for="youtube-url">Link do vídeo</label>
+            <input
+              id="youtube-url"
+              name="youtube-url"
+              type="url"
+              inputmode="url"
+              autocomplete="url"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="https://youtube.com/watch?v=…"
+              aria-describedby="url-help"
+              required
+            />
+            <p class="field-help" id="url-help">
+              Funciona com vídeos públicos em português, mesmo sem legendas.
+            </p>
+          </div>
+
+          <button class="button button-primary" id="submit-button" type="submit">
+            <span class="button-label">Transcrever</span>
+            <span class="spinner" aria-hidden="true" hidden></span>
+          </button>
+        </form>
+
+        <div
+          class="status-message"
+          id="status-message"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
+      </section>
+
+      <section class="surface error-view" id="error-view" aria-labelledby="error-title" hidden>
+        <p class="eyebrow error-eyebrow">Não foi possível</p>
+        <h2 id="error-title">Vamos tentar outra vez</h2>
+        <p class="error-message" id="error-message"></p>
+        <button class="button button-secondary" id="retry-button" type="button">
+          Voltar ao link
+        </button>
+      </section>
+
+      <section class="surface result-view" id="result-view" aria-labelledby="result-title" hidden>
+        <div class="result-heading">
+          <div class="result-heading-copy">
+            <p class="eyebrow">Pronto para ler</p>
+            <h2 id="result-title">Transcrição</h2>
+          </div>
+          <button class="button button-ghost" id="new-button" type="button">
+            Nova transcrição
+          </button>
+        </div>
+
+        <div class="result-actions" aria-label="Ações da transcrição">
+          <button class="button button-secondary" id="copy-button" type="button">
+            Copiar texto
+          </button>
+          <button class="button button-secondary" id="share-button" type="button">
+            Partilhar
+          </button>
+        </div>
+
+        <aside class="warning" id="truncated-warning" hidden>
+          Este vídeo é demasiado longo para uma única transcrição. O texto abaixo
+          contém apenas a parte que foi possível preparar.
+        </aside>
+
+        <div class="transcript" id="transcript" tabindex="0"></div>
+
+        <div class="result-actions result-actions-bottom" aria-label="Ações finais da transcrição">
+          <button class="button button-secondary" id="copy-bottom-button" type="button">
+            Copiar texto
+          </button>
+          <button class="button button-ghost" id="new-bottom-button" type="button">
+            Nova transcrição
+          </button>
+        </div>
+      </section>
+
+      <p class="privacy-note">
+        O link e a transcrição não ficam guardados neste site.
+      </p>
+
+      <div class="visually-hidden" id="action-announcer" aria-live="polite"></div>
+    </main>
+  </body>
+</html>
