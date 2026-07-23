@@ -3,6 +3,7 @@ import type { YouTubeAudioSource } from "./youtube-audio.ts";
 const FILES_API_BASE_URL = "https://generativelanguage.googleapis.com";
 const FILE_POLL_ATTEMPTS = 30;
 const AUDIO_SOURCE_ERROR_CODES = new Set([
+  "EMBEDDING_DISABLED",
   "SOURCE_TIMEOUT",
   "VIDEO_TOO_LONG",
   "VIDEO_UNAVAILABLE",
