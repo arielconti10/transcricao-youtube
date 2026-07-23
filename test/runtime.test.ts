@@ -17,6 +17,7 @@ test("composes the local server, guard, app, and Gemini provider", async () => {
     geminiApiKey: "gemini-api-key",
     geminiModel: "gemini-test",
     host: "127.0.0.1",
+    maxAudioBytes: 100_000_000,
     maxConcurrent: 1,
     maxPerClientPerHour: 6,
     maxPerDay: 20,
