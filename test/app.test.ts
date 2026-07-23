@@ -121,6 +121,11 @@ test("returns a safe error for malformed JSON", async () => {
 test("maps provider failures to safe Portuguese responses", async () => {
   const cases = [
     {
+      code: "EMBEDDING_DISABLED",
+      message: "O autor deste vídeo não permite a reprodução fora do YouTube.",
+      status: 422,
+    },
+    {
       code: "VIDEO_UNAVAILABLE",
       message:
         "Não conseguimos acessar este vídeo. Confirme que o link está correto e que o vídeo não é privado.",
