@@ -2,6 +2,7 @@ import { createApp } from "./app.ts";
 import { createGeminiProvider } from "./gemini-provider.ts";
 import { createProtectedApp } from "./session-auth.ts";
 import { createUsageGuard } from "./usage-guard.ts";
+import { createYouTubeAudioSource } from "./youtube-audio.ts";
 
 const API_PATHS = new Set(["/api/session", "/api/transcriptions"]);
 const MAXIMUM_REQUEST_BYTES = 16 * 1_024;
@@ -38,6 +39,10 @@ function appFor(env: Env): ReturnType<typeof createProtectedApp> {
       maxTranscriptCharacters: 400_000,
       provider: createGeminiProvider({
         apiKey: env.GEMINI_API_KEY,
+        audioSource: createYouTubeAudioSource({
+          maxBytes: 100_000_000,
+          timeoutMs: 300_000,
+        }),
         model: "gemini-3.6-flash",
         timeoutMs: 300_000,
       }),
