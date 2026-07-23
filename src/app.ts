@@ -37,8 +37,17 @@ const PROVIDER_ERROR_RESPONSES: Record<
     message: "Não foi possível preparar a transcrição agora. Tente novamente.",
     status: 502,
   },
+  SOURCE_TIMEOUT: {
+    message: "A transcrição demorou demais. Tente novamente.",
+    status: 504,
+  },
+  VIDEO_TOO_LONG: {
+    message: "Este vídeo é demasiado longo para transcrever.",
+    status: 422,
+  },
   VIDEO_UNAVAILABLE: {
-    message: "Não conseguimos acessar este vídeo. Confirme que ele é público.",
+    message:
+      "Não conseguimos acessar este vídeo. Confirme que o link está correto e que o vídeo não é privado.",
     status: 422,
   },
 };
