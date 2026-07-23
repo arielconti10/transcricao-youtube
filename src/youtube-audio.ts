@@ -60,6 +60,33 @@ export function buildPlayerRequest(videoId: string) {
   };
 }
 
+function playabilityReason(playability: Record<string, unknown>): string {
+  if (typeof playability.reason === "string") {
+    return playability.reason;
+  }
+
+  const errorScreen = playability.errorScreen;
+  if (!isRecord(errorScreen)) {
+    return "";
+  }
+  const renderer = errorScreen.playerErrorMessageRenderer;
+  if (!isRecord(renderer) || !isRecord(renderer.subreason)) {
+    return "";
+  }
+  const { subreason } = renderer;
+  if (typeof subreason.simpleText === "string") {
+    return subreason.simpleText;
+  }
+  if (Array.isArray(subreason.runs)) {
+    return subreason.runs
+      .map((run) =>
+        isRecord(run) && typeof run.text === "string" ? run.text : "",
+      )
+      .join("");
+  }
+  return "";
+}
+
 export function parsePlayerResponse(payload: unknown): AudioFormat[] {
   if (!isRecord(payload)) {
     throw new YouTubeAudioError(
@@ -70,6 +97,16 @@ export function parsePlayerResponse(payload: unknown): AudioFormat[] {
 
   const playability = payload.playabilityStatus;
   if (!isRecord(playability) || playability.status !== "OK") {
+    const reason = isRecord(playability) ? playabilityReason(playability) : "";
+    if (
+      (isRecord(playability) && playability.playableInEmbed === false) ||
+      /playback on other websites|disabled by the video owner/i.test(reason)
+    ) {
+      throw new YouTubeAudioError(
+        "EMBEDDING_DISABLED",
+        "The video owner disabled playback outside YouTube.",
+      );
+    }
     throw new YouTubeAudioError(
       "VIDEO_UNAVAILABLE",
       "YouTube reports this video as not playable.",
