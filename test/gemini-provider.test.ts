@@ -202,6 +202,95 @@ test("posts the video request to the configured Gemini model", async () => {
   );
 });
 
+test("retries one malformed Gemini response before returning the transcript", async () => {
+  let callCount = 0;
+  const provider = createGeminiProvider({
+    apiKey: "test-api-key",
+    fetchImpl: (async () => {
+      callCount += 1;
+      return new Response(
+        JSON.stringify(
+          callCount === 1
+            ? {
+                candidates: [
+                  {
+                    finishReason: "MALFORMED_RESPONSE",
+                    index: 0,
+                  },
+                ],
+              }
+            : {
+                candidates: [
+                  {
+                    content: {
+                      parts: [{ text: "Transcrição recuperada." }],
+                      role: "model",
+                    },
+                    finishReason: "STOP",
+                    index: 0,
+                  },
+                ],
+              },
+        ),
+        {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        },
+      );
+    }) as typeof fetch,
+    model: "gemini-test",
+    timeoutMs: 1_000,
+  });
+
+  assert.deepEqual(
+    await provider.transcribe(
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    ),
+    {
+      transcript: "Transcrição recuperada.",
+      truncated: false,
+    },
+  );
+  assert.equal(callCount, 2);
+});
+
+test("stops after two malformed Gemini responses", async () => {
+  let callCount = 0;
+  const provider = createGeminiProvider({
+    apiKey: "test-api-key",
+    fetchImpl: (async () => {
+      callCount += 1;
+      return new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              finishReason: "MALFORMED_RESPONSE",
+              index: 0,
+            },
+          ],
+        }),
+        {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        },
+      );
+    }) as typeof fetch,
+    model: "gemini-test",
+    timeoutMs: 1_000,
+  });
+
+  await assert.rejects(
+    provider.transcribe(
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    ),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "PROVIDER_UNAVAILABLE",
+  );
+  assert.equal(callCount, 2);
+});
+
 test("maps Gemini rate limits to a stable provider error code", async () => {
   const provider = createGeminiProvider({
     apiKey: "test-api-key",

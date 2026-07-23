@@ -27,10 +27,10 @@ legendas, não exige conta e não guarda o link nem a transcrição.
 
    ```dotenv
    GEMINI_API_KEY=sua-chave-da-gemini
-   FAMILY_ACCESS_TOKEN=um-segredo-longo-e-aleatorio
+   SITE_PASSWORD=uma-palavra-passe-longa
    ```
 
-   Pode gerar o segredo familiar com:
+   Pode gerar uma palavra-passe aleatória com:
 
    ```sh
    openssl rand -hex 24
@@ -42,15 +42,18 @@ legendas, não exige conta e não guarda o link nem a transcrição.
    npm start
    ```
 
-5. Abra este endereço, substituindo o texto depois de `#` pelo segredo familiar:
+5. Abra o endereço normal:
 
    ```text
-   http://127.0.0.1:4173/#um-segredo-longo-e-aleatorio
+   http://127.0.0.1:4173/
    ```
 
-O segredo fica no fragmento do endereço (`#...`), que o navegador não envia ao
-servidor. O site manda-o apenas no cabeçalho protegido do pedido de transcrição.
-Nunca publique o ficheiro `.env` nem coloque a chave da Gemini no código do site.
+Na primeira visita, o site pede `SITE_PASSWORD`. Depois de a palavra-passe ser
+aceite, o servidor cria uma sessão protegida num cookie `HttpOnly`; a
+palavra-passe não aparece no endereço e não fica guardada no armazenamento do
+navegador. O mesmo telemóvel entra automaticamente nas visitas seguintes. Nunca
+publique o ficheiro `.env` nem coloque a chave da Gemini ou a palavra-passe no
+código do site.
 
 ## Verificar o projeto
 
@@ -83,9 +86,27 @@ alterados no `.env`; todas as opções estão documentadas em `.env.example`.
 A Gemini só consegue analisar vídeos públicos do YouTube. Vídeos privados ou
 indisponíveis devolvem uma mensagem simples no site.
 
-## Preparar para alojamento
+## Publicar no Cloudflare Workers
 
-No serviço de alojamento, configure `GEMINI_API_KEY` e `FAMILY_ACCESS_TOKEN` como
-variáveis secretas. Defina também `HOST=0.0.0.0`; a plataforma normalmente
-fornece `PORT`. Se o serviço estiver atrás de um proxy de confiança, pode definir
-`TRUST_PROXY=true` para aplicar o limite horário ao endereço real do visitante.
+O projeto inclui `wrangler.jsonc` e uma entrada própria para Cloudflare Workers.
+Os ficheiros de `public/` são servidos como Static Assets e a chamada à Gemini
+continua a acontecer apenas no servidor.
+
+1. Instale e autentique o Wrangler:
+
+   ```sh
+   npm install -D wrangler@latest
+   npx wrangler login
+   ```
+
+2. Publique o Worker e envie os dois valores de `.env` como segredos:
+
+   ```sh
+   npx wrangler deploy --secrets-file .env
+   ```
+
+3. Abra o endereço normal devolvido pelo Wrangler. Na primeira visita de cada
+   telemóvel, introduza `SITE_PASSWORD`; nas visitas seguintes, a sessão é
+   reconhecida automaticamente.
+
+Nunca coloque `GEMINI_API_KEY` ou `SITE_PASSWORD` em `wrangler.jsonc`.

@@ -6,13 +6,12 @@ import { loadConfig } from "../src/config.ts";
 test("loads secrets and conservative local defaults from the environment", () => {
   assert.deepEqual(
     loadConfig({
-      FAMILY_ACCESS_TOKEN: "a-long-family-access-token",
       GEMINI_API_KEY: "gemini-api-key",
+      SITE_PASSWORD: "a-long-site-password",
     }),
     {
-      familyAccessToken: "a-long-family-access-token",
       geminiApiKey: "gemini-api-key",
-      geminiModel: "gemini-3.5-flash",
+      geminiModel: "gemini-3.6-flash",
       host: "127.0.0.1",
       maxConcurrent: 1,
       maxPerClientPerHour: 6,
@@ -20,6 +19,7 @@ test("loads secrets and conservative local defaults from the environment", () =>
       maxTranscriptCharacters: 400_000,
       port: 4173,
       providerTimeoutMs: 300_000,
+      sitePassword: "a-long-site-password",
       trustProxy: false,
     },
   );
@@ -28,7 +28,6 @@ test("loads secrets and conservative local defaults from the environment", () =>
 test("accepts explicit deployment and usage-limit overrides", () => {
   assert.deepEqual(
     loadConfig({
-      FAMILY_ACCESS_TOKEN: "another-long-family-token",
       GEMINI_API_KEY: "another-api-key",
       GEMINI_MODEL: "gemini-custom",
       HOST: "0.0.0.0",
@@ -38,10 +37,10 @@ test("accepts explicit deployment and usage-limit overrides", () => {
       MAX_TRANSCRIPT_CHARACTERS: "500000",
       PORT: "8080",
       PROVIDER_TIMEOUT_MS: "240000",
+      SITE_PASSWORD: "another-long-password",
       TRUST_PROXY: "true",
     }),
     {
-      familyAccessToken: "another-long-family-token",
       geminiApiKey: "another-api-key",
       geminiModel: "gemini-custom",
       host: "0.0.0.0",
@@ -51,6 +50,7 @@ test("accepts explicit deployment and usage-limit overrides", () => {
       maxTranscriptCharacters: 500_000,
       port: 8080,
       providerTimeoutMs: 240_000,
+      sitePassword: "another-long-password",
       trustProxy: true,
     },
   );
@@ -58,12 +58,12 @@ test("accepts explicit deployment and usage-limit overrides", () => {
 
 test("fails fast when a required secret is missing", () => {
   assert.throws(
-    () => loadConfig({ FAMILY_ACCESS_TOKEN: "a-long-family-access-token" }),
+    () => loadConfig({ SITE_PASSWORD: "a-long-site-password" }),
     /GEMINI_API_KEY/,
   );
   assert.throws(
     () => loadConfig({ GEMINI_API_KEY: "gemini-api-key" }),
-    /FAMILY_ACCESS_TOKEN/,
+    /SITE_PASSWORD/,
   );
 });
 
@@ -71,18 +71,18 @@ test("rejects invalid numeric settings instead of starting unpredictably", () =>
   assert.throws(
     () =>
       loadConfig({
-        FAMILY_ACCESS_TOKEN: "a-long-family-access-token",
         GEMINI_API_KEY: "gemini-api-key",
         PORT: "not-a-port",
+        SITE_PASSWORD: "a-long-site-password",
       }),
     /PORT/,
   );
   assert.throws(
     () =>
       loadConfig({
-        FAMILY_ACCESS_TOKEN: "a-long-family-access-token",
         GEMINI_API_KEY: "gemini-api-key",
         MAX_REQUESTS_PER_DAY: "0",
+        SITE_PASSWORD: "a-long-site-password",
       }),
     /MAX_REQUESTS_PER_DAY/,
   );

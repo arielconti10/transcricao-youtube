@@ -10,7 +10,7 @@ import type {
 import { GeminiProviderError } from "../src/gemini-provider.ts";
 import { createUsageGuard } from "../src/usage-guard.ts";
 
-test("returns a transcript for an authorized valid YouTube link", async () => {
+test("returns a transcript for a valid YouTube link", async () => {
   const transcribedUrls: string[] = [];
   const provider: TranscriptProvider = {
     async transcribe(videoUrl: string): Promise<TranscriptResult> {
@@ -22,7 +22,6 @@ test("returns a transcript for an authorized valid YouTube link", async () => {
     },
   };
   const app = createApp({
-    familyAccessToken: "family-secret",
     provider,
     usageGuard: createUsageGuard({
       maxConcurrent: 1,
@@ -33,12 +32,9 @@ test("returns a transcript for an authorized valid YouTube link", async () => {
   const response = await app.handle(
     new Request("http://localhost/api/transcriptions", {
       body: JSON.stringify({
-        url: "https://youtu.be/dQw4w9WgXcQ?si=family-share",
+        url: "https://youtu.be/dQw4w9WgXcQ?si=shared-link",
       }),
-      headers: {
-        "content-type": "application/json",
-        "x-family-token": "family-secret",
-      },
+      headers: { "content-type": "application/json" },
       method: "POST",
     }),
     { clientAddress: "127.0.0.1" },
@@ -55,47 +51,9 @@ test("returns a transcript for an authorized valid YouTube link", async () => {
   ]);
 });
 
-test("rejects a request that does not include the family access token", async () => {
-  let providerCalled = false;
-  const app = createApp({
-    familyAccessToken: "family-secret",
-    provider: {
-      async transcribe() {
-        providerCalled = true;
-        return { transcript: "Não deveria aparecer.", truncated: false };
-      },
-    },
-    usageGuard: createUsageGuard({
-      maxConcurrent: 1,
-      maxPerClientPerHour: 10,
-      maxPerDay: 20,
-    }),
-  });
-  const response = await app.handle(
-    new Request("http://localhost/api/transcriptions", {
-      body: JSON.stringify({
-        url: "https://youtu.be/dQw4w9WgXcQ",
-      }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
-    }),
-    { clientAddress: "127.0.0.1" },
-  );
-
-  assert.equal(response.status, 401);
-  assert.deepEqual(await response.json(), {
-    error: {
-      code: "ACCESS_DENIED",
-      message: "Este link de acesso não é válido.",
-    },
-  });
-  assert.equal(providerCalled, false);
-});
-
 test("rejects a non-YouTube URL before calling the provider", async () => {
   let providerCalled = false;
   const app = createApp({
-    familyAccessToken: "family-secret",
     provider: {
       async transcribe() {
         providerCalled = true;
@@ -113,10 +71,7 @@ test("rejects a non-YouTube URL before calling the provider", async () => {
       body: JSON.stringify({
         url: "https://youtube.com.example.org/watch?v=dQw4w9WgXcQ",
       }),
-      headers: {
-        "content-type": "application/json",
-        "x-family-token": "family-secret",
-      },
+      headers: { "content-type": "application/json" },
       method: "POST",
     }),
     { clientAddress: "127.0.0.1" },
@@ -134,7 +89,6 @@ test("rejects a non-YouTube URL before calling the provider", async () => {
 
 test("returns a safe error for malformed JSON", async () => {
   const app = createApp({
-    familyAccessToken: "family-secret",
     provider: {
       async transcribe() {
         return { transcript: "Não deveria aparecer.", truncated: false };
@@ -149,10 +103,7 @@ test("returns a safe error for malformed JSON", async () => {
   const response = await app.handle(
     new Request("http://localhost/api/transcriptions", {
       body: "{invalid",
-      headers: {
-        "content-type": "application/json",
-        "x-family-token": "family-secret",
-      },
+      headers: { "content-type": "application/json" },
       method: "POST",
     }),
     { clientAddress: "127.0.0.1" },
@@ -198,7 +149,6 @@ test("maps provider failures to safe Portuguese responses", async () => {
 
   for (const expected of cases) {
     const app = createApp({
-      familyAccessToken: "family-secret",
       provider: {
         async transcribe() {
           throw new GeminiProviderError(
@@ -216,10 +166,7 @@ test("maps provider failures to safe Portuguese responses", async () => {
     const response = await app.handle(
       new Request("http://localhost/api/transcriptions", {
         body: JSON.stringify({ url: "https://youtu.be/dQw4w9WgXcQ" }),
-        headers: {
-          "content-type": "application/json",
-          "x-family-token": "family-secret",
-        },
+        headers: { "content-type": "application/json" },
         method: "POST",
       }),
       { clientAddress: "127.0.0.1" },
@@ -257,7 +204,6 @@ test("maps usage limits to helpful Portuguese responses", async () => {
 
   for (const expected of cases) {
     const app = createApp({
-      familyAccessToken: "family-secret",
       provider: {
         async transcribe() {
           return { transcript: "Não deveria aparecer.", truncated: false };
@@ -272,10 +218,7 @@ test("maps usage limits to helpful Portuguese responses", async () => {
     const response = await app.handle(
       new Request("http://localhost/api/transcriptions", {
         body: JSON.stringify({ url: "https://youtu.be/dQw4w9WgXcQ" }),
-        headers: {
-          "content-type": "application/json",
-          "x-family-token": "family-secret",
-        },
+        headers: { "content-type": "application/json" },
         method: "POST",
       }),
       { clientAddress: "127.0.0.1" },
@@ -293,7 +236,6 @@ test("maps usage limits to helpful Portuguese responses", async () => {
 
 test("hides unexpected internal failures from the client", async () => {
   const app = createApp({
-    familyAccessToken: "family-secret",
     provider: {
       async transcribe() {
         throw new Error("Secret internal failure details.");
@@ -308,10 +250,7 @@ test("hides unexpected internal failures from the client", async () => {
   const response = await app.handle(
     new Request("http://localhost/api/transcriptions", {
       body: JSON.stringify({ url: "https://youtu.be/dQw4w9WgXcQ" }),
-      headers: {
-        "content-type": "application/json",
-        "x-family-token": "family-secret",
-      },
+      headers: { "content-type": "application/json" },
       method: "POST",
     }),
     { clientAddress: "127.0.0.1" },
@@ -329,7 +268,6 @@ test("hides unexpected internal failures from the client", async () => {
 test("uses a one-way client key for rate-limit counters", async () => {
   let receivedClientKey = "";
   const app = createApp({
-    familyAccessToken: "family-secret",
     provider: {
       async transcribe() {
         return { transcript: "Transcrição.", truncated: false };
@@ -345,10 +283,7 @@ test("uses a one-way client key for rate-limit counters", async () => {
   await app.handle(
     new Request("http://localhost/api/transcriptions", {
       body: JSON.stringify({ url: "https://youtu.be/dQw4w9WgXcQ" }),
-      headers: {
-        "content-type": "application/json",
-        "x-family-token": "family-secret",
-      },
+      headers: { "content-type": "application/json" },
       method: "POST",
     }),
     { clientAddress: "203.0.113.10" },
@@ -356,16 +291,13 @@ test("uses a one-way client key for rate-limit counters", async () => {
 
   assert.equal(
     receivedClientKey,
-    createHash("sha256")
-      .update("family-secret\0" + "203.0.113.10")
-      .digest("hex"),
+    createHash("sha256").update("203.0.113.10").digest("hex"),
   );
   assert.equal(receivedClientKey.includes("203.0.113.10"), false);
 });
 
 test("marks an oversized transcript as truncated instead of returning it silently", async () => {
   const app = createApp({
-    familyAccessToken: "family-secret",
     maxTranscriptCharacters: 10,
     provider: {
       async transcribe() {
@@ -384,10 +316,7 @@ test("marks an oversized transcript as truncated instead of returning it silentl
   const response = await app.handle(
     new Request("http://localhost/api/transcriptions", {
       body: JSON.stringify({ url: "https://youtu.be/dQw4w9WgXcQ" }),
-      headers: {
-        "content-type": "application/json",
-        "x-family-token": "family-secret",
-      },
+      headers: { "content-type": "application/json" },
       method: "POST",
     }),
     { clientAddress: "127.0.0.1" },

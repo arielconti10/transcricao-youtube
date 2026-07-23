@@ -2,6 +2,17 @@
   "use strict";
 
   var app = document.getElementById("app");
+  var accessLoadingView = document.getElementById("access-loading-view");
+  var authView = document.getElementById("auth-view");
+  var passwordForm = document.getElementById("password-form");
+  var passwordInput = document.getElementById("site-password");
+  var passwordError = document.getElementById("password-error");
+  var passwordSubmitButton = document.getElementById(
+    "password-submit-button",
+  );
+  var passwordSubmitLabel =
+    passwordSubmitButton.querySelector(".button-label");
+  var passwordSpinner = passwordSubmitButton.querySelector(".spinner");
   var form = document.getElementById("transcription-form");
   var entryView = document.getElementById("entry-view");
   var input = document.getElementById("youtube-url");
@@ -24,24 +35,27 @@
 
   var fallbackMessages = {
     ACCESS_DENIED:
-      "Este link de acesso não é válido. Abra novamente o endereço que foi guardado para si.",
+      "A sessão terminou. Introduza novamente a palavra-passe.",
     INVALID_REQUEST: "O pedido não pôde ser lido. Tente novamente.",
     INVALID_URL: "Cole um link válido de um vídeo do YouTube.",
     UNKNOWN_ERROR: "Algo correu mal. Tente novamente.",
   };
 
-  function getFamilyToken() {
-    var hash = window.location.hash.slice(1);
-    if (hash.indexOf("access=") === 0) {
-      hash = hash.slice(7);
-    }
-
-    try {
-      return decodeURIComponent(hash);
-    } catch (_error) {
-      return "";
+  function removeLegacyFragment() {
+    if (
+      window.location.hash &&
+      window.history &&
+      typeof window.history.replaceState === "function"
+    ) {
+      window.history.replaceState(
+        null,
+        document.title,
+        window.location.pathname + window.location.search,
+      );
     }
   }
+
+  removeLegacyFragment();
 
   function isYouTubeUrl(value) {
     try {
@@ -71,7 +85,44 @@
       : "";
   }
 
+  function setPasswordError(message) {
+    passwordError.textContent = message;
+    passwordError.hidden = message === "";
+    if (message === "") {
+      passwordInput.removeAttribute("aria-invalid");
+    } else {
+      passwordInput.setAttribute("aria-invalid", "true");
+    }
+  }
+
+  function setPasswordBusy(busy) {
+    app.setAttribute("aria-busy", busy ? "true" : "false");
+    passwordInput.disabled = busy;
+    passwordSubmitButton.disabled = busy;
+    passwordSubmitLabel.textContent = busy ? "A entrar" : "Entrar";
+    passwordSpinner.hidden = !busy;
+  }
+
+  function showPasswordScreen(message) {
+    accessLoadingView.hidden = true;
+    entryView.hidden = true;
+    errorView.hidden = true;
+    resultView.hidden = true;
+    authView.hidden = false;
+    setPasswordError(message || "");
+  }
+
+  function showEntry() {
+    accessLoadingView.hidden = true;
+    authView.hidden = true;
+    errorView.hidden = true;
+    resultView.hidden = true;
+    entryView.hidden = false;
+  }
+
   function showError(message) {
+    accessLoadingView.hidden = true;
+    authView.hidden = true;
     resultView.hidden = true;
     entryView.hidden = false;
     errorMessage.textContent = message;
@@ -80,6 +131,8 @@
   }
 
   function showResult(data) {
+    accessLoadingView.hidden = true;
+    authView.hidden = true;
     errorView.hidden = true;
     entryView.hidden = true;
     transcript.textContent = data.transcript;
@@ -176,6 +229,97 @@
     window.scrollTo({ top: 0, behavior: "auto" });
   }
 
+  function responseData(response) {
+    return response
+      .json()
+      .catch(function () {
+        return {};
+      })
+      .then(function (data) {
+        if (!response.ok) {
+          var code = data.error && data.error.code;
+          var message = data.error && data.error.message;
+          var requestError = new Error(
+            message || fallbackMessages[code] || fallbackMessages.UNKNOWN_ERROR,
+          );
+          requestError.code = code;
+          throw requestError;
+        }
+        return data;
+      });
+  }
+
+  function checkSession() {
+    window
+      .fetch("/api/session", {
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { accept: "application/json" },
+        method: "GET",
+      })
+      .then(responseData)
+      .then(function (data) {
+        if (data && data.authenticated === true) {
+          showEntry();
+        } else {
+          showPasswordScreen("");
+        }
+      })
+      .catch(function () {
+        showPasswordScreen(
+          "Não foi possível confirmar o acesso. Tente introduzir a palavra-passe.",
+        );
+      });
+  }
+
+  passwordForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var password = passwordInput.value;
+    if (!password) {
+      setPasswordError("Introduza a palavra-passe.");
+      passwordInput.focus();
+      return;
+    }
+
+    setPasswordError("");
+    setPasswordBusy(true);
+    window
+      .fetch("/api/session", {
+        body: JSON.stringify({ password: password }),
+        credentials: "same-origin",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        method: "POST",
+      })
+      .then(responseData)
+      .then(function (data) {
+        if (!data || data.authenticated !== true) {
+          throw new Error(fallbackMessages.UNKNOWN_ERROR);
+        }
+        passwordInput.value = "";
+        showEntry();
+      })
+      .catch(function (error) {
+        setPasswordError(
+          error && error.message
+            ? error.message
+            : fallbackMessages.UNKNOWN_ERROR,
+        );
+        passwordInput.focus();
+      })
+      .then(function () {
+        setPasswordBusy(false);
+      });
+  });
+
+  passwordInput.addEventListener("input", function () {
+    if (!passwordError.hidden) {
+      setPasswordError("");
+    }
+  });
+
   form.addEventListener("submit", function (event) {
     event.preventDefault();
     errorView.hidden = true;
@@ -190,31 +334,15 @@
 
     window
       .fetch("/api/transcriptions", {
+        credentials: "same-origin",
         method: "POST",
         headers: {
+          accept: "application/json",
           "content-type": "application/json",
-          "x-family-token": getFamilyToken(),
         },
         body: JSON.stringify({ url: submittedUrl }),
       })
-      .then(function (response) {
-        return response
-          .json()
-          .catch(function () {
-            return {};
-          })
-          .then(function (data) {
-            if (!response.ok) {
-              var code = data.error && data.error.code;
-              var message = data.error && data.error.message;
-              throw new Error(
-                message || fallbackMessages[code] || fallbackMessages.UNKNOWN_ERROR,
-              );
-            }
-
-            return data;
-          });
-      })
+      .then(responseData)
       .then(function (data) {
         if (!data || typeof data.transcript !== "string") {
           throw new Error(fallbackMessages.UNKNOWN_ERROR);
@@ -223,6 +351,10 @@
         showResult(data);
       })
       .catch(function (error) {
+        if (error && error.code === "ACCESS_DENIED") {
+          showPasswordScreen(error.message);
+          return;
+        }
         showError(
           error && error.message
             ? error.message
@@ -244,4 +376,5 @@
   shareButton.addEventListener("click", shareTranscript);
   newButton.addEventListener("click", reset);
   newBottomButton.addEventListener("click", reset);
+  checkSession();
 })();

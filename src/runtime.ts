@@ -2,6 +2,7 @@ import { createApp } from "./app.ts";
 import type { AppConfiguration } from "./config.ts";
 import { createGeminiProvider } from "./gemini-provider.ts";
 import { createNodeServer } from "./server.ts";
+import { createProtectedApp } from "./session-auth.ts";
 import { createUsageGuard } from "./usage-guard.ts";
 
 interface RuntimeOptions {
@@ -24,11 +25,15 @@ export function createRuntime(
     maxPerClientPerHour: config.maxPerClientPerHour,
     maxPerDay: config.maxPerDay,
   });
-  const app = createApp({
-    familyAccessToken: config.familyAccessToken,
+  const transcriptionApp = createApp({
     maxTranscriptCharacters: config.maxTranscriptCharacters,
     provider,
     usageGuard,
+  });
+  const app = createProtectedApp({
+    app: transcriptionApp,
+    secureCookie: false,
+    sitePassword: config.sitePassword,
   });
 
   return {

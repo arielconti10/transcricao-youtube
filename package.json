@@ -11,11 +11,12 @@
     "dev": "node --env-file-if-exists=.env --watch src/main.ts",
     "start": "node --env-file-if-exists=.env src/main.ts",
     "test": "node --test test/*.test.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json --noEmit",
     "check": "npm run test && npm run typecheck && node --check public/app.js"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "wrangler": "^4.113.0"
   }
 }

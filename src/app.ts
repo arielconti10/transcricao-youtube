@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 
 import {
   GeminiProviderError,
@@ -8,7 +8,6 @@ import type { UsageGuard } from "./usage-guard.ts";
 import { normalizeYouTubeUrl } from "./youtube-url.ts";
 
 interface AppConfig {
-  familyAccessToken: string;
   maxTranscriptCharacters?: number;
   provider: TranscriptProvider;
   usageGuard: UsageGuard;
@@ -59,20 +58,8 @@ function jsonResponse(payload: unknown, status = 200): Response {
   });
 }
 
-function tokensMatch(actual: string | null, expected: string): boolean {
-  const actualBytes = Buffer.from(actual ?? "", "utf8");
-  const expectedBytes = Buffer.from(expected, "utf8");
-
-  return (
-    actualBytes.length === expectedBytes.length &&
-    timingSafeEqual(actualBytes, expectedBytes)
-  );
-}
-
-function createClientKey(clientAddress: string, accessToken: string): string {
-  return createHash("sha256")
-    .update(`${accessToken}\0${clientAddress}`)
-    .digest("hex");
+function createClientKey(clientAddress: string): string {
+  return createHash("sha256").update(clientAddress).digest("hex");
 }
 
 export function createApp(config: AppConfig) {
@@ -81,23 +68,6 @@ export function createApp(config: AppConfig) {
       request: Request,
       context: RequestContext,
     ): Promise<Response> {
-      if (
-        !tokensMatch(
-          request.headers.get("x-family-token"),
-          config.familyAccessToken,
-        )
-      ) {
-        return jsonResponse(
-          {
-            error: {
-              code: "ACCESS_DENIED",
-              message: "Este link de acesso não é válido.",
-            },
-          },
-          401,
-        );
-      }
-
       let body: { url?: unknown };
       try {
         body = (await request.json()) as { url?: unknown };
@@ -128,7 +98,7 @@ export function createApp(config: AppConfig) {
       }
 
       const lease = config.usageGuard.acquire(
-        createClientKey(context.clientAddress, config.familyAccessToken),
+        createClientKey(context.clientAddress),
       );
       if (!lease.allowed) {
         return jsonResponse(

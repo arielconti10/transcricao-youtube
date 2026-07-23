@@ -5,7 +5,7 @@ import { normalizeYouTubeUrl } from "../src/youtube-url.ts";
 
 test("normalizes a shared youtu.be link to a canonical watch URL", () => {
   assert.equal(
-    normalizeYouTubeUrl("https://youtu.be/dQw4w9WgXcQ?si=family-share"),
+    normalizeYouTubeUrl("https://youtu.be/dQw4w9WgXcQ?si=shared-link"),
     "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   );
 });

@@ -14,7 +14,6 @@ async function closeServer(server: Server): Promise<void> {
 
 test("composes the local server, guard, app, and Gemini provider", async () => {
   const configuration: AppConfiguration = {
-    familyAccessToken: "family-secret",
     geminiApiKey: "gemini-api-key",
     geminiModel: "gemini-test",
     host: "127.0.0.1",
@@ -24,6 +23,7 @@ test("composes the local server, guard, app, and Gemini provider", async () => {
     maxTranscriptCharacters: 400_000,
     port: 0,
     providerTimeoutMs: 1_000,
+    sitePassword: "site-secret",
     trustProxy: false,
   };
   const fetchImpl = (async () =>
@@ -64,13 +64,23 @@ test("composes the local server, guard, app, and Gemini provider", async () => {
   try {
     const address = runtime.server.address();
     assert.ok(address && typeof address === "object");
+    const origin = `http://127.0.0.1:${address.port}`;
+    const loginResponse = await fetch(`${origin}/api/session`, {
+      body: JSON.stringify({ password: "site-secret" }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    assert.equal(loginResponse.status, 200);
+    const cookie = loginResponse.headers.get("set-cookie")?.split(";", 1)[0];
+    assert.ok(cookie);
+
     const response = await fetch(
-      `http://127.0.0.1:${address.port}/api/transcriptions`,
+      `${origin}/api/transcriptions`,
       {
         body: JSON.stringify({ url: "https://youtu.be/dQw4w9WgXcQ" }),
         headers: {
+          cookie,
           "content-type": "application/json",
-          "x-family-token": "family-secret",
         },
         method: "POST",
       },

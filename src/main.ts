@@ -13,7 +13,7 @@ try {
   server.listen(config.port, config.host, () => {
     const displayHost = config.host === "0.0.0.0" ? "localhost" : config.host;
     console.log(`Transcrição fácil: http://${displayHost}:${config.port}/`);
-    console.log("Abra o endereço com # seguido do token familiar guardado.");
+    console.log("Abra o endereço e introduza a palavra-passe do site.");
   });
 
   const stop = () => {

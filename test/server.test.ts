@@ -55,7 +55,6 @@ test("forwards the transcription endpoint and trusted client address", async () 
   const received: Array<{
     body: unknown;
     clientAddress: string;
-    familyToken: string | null;
   }> = [];
   const server = createNodeServer({
     app: {
@@ -63,7 +62,6 @@ test("forwards the transcription endpoint and trusted client address", async () 
         received.push({
           body: await request.json(),
           clientAddress: context.clientAddress,
-          familyToken: request.headers.get("x-family-token"),
         });
         return Response.json(
           { transcript: "Transcrição completa.", truncated: false },
@@ -86,7 +84,6 @@ test("forwards the transcription endpoint and trusted client address", async () 
         body: JSON.stringify({ url: "https://youtu.be/dQw4w9WgXcQ" }),
         headers: {
           "content-type": "application/json",
-          "x-family-token": "family-secret",
           "x-forwarded-for": "198.51.100.5, 10.0.0.1",
         },
         method: "POST",
@@ -104,9 +101,41 @@ test("forwards the transcription endpoint and trusted client address", async () 
       {
         body: { url: "https://youtu.be/dQw4w9WgXcQ" },
         clientAddress: "198.51.100.5",
-        familyToken: "family-secret",
       },
     ]);
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test("forwards session checks without requiring a request body", async () => {
+  const received: Array<{ method: string; path: string }> = [];
+  const server = createNodeServer({
+    app: {
+      async handle(request) {
+        received.push({
+          method: request.method,
+          path: new URL(request.url).pathname,
+        });
+        return Response.json({ authenticated: false });
+      },
+    },
+    publicDirectory: new URL("../public/", import.meta.url),
+    trustProxy: false,
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address === "object");
+    const response = await fetch(
+      `http://127.0.0.1:${address.port}/api/session`,
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { authenticated: false });
+    assert.deepEqual(received, [{ method: "GET", path: "/api/session" }]);
   } finally {
     await closeServer(server);
   }

@@ -10,8 +10,8 @@
     />
     <title>Transcrição fácil</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/styles.css" />
-    <script src="/app.js" defer></script>
+    <link rel="stylesheet" href="/styles.css?v=password-screen-1" />
+    <script src="/app.js?v=password-screen-1" defer></script>
   </head>
   <body>
     <main class="app-shell" id="app" aria-busy="false">
@@ -32,7 +32,64 @@
         </div>
       </header>
 
-      <section class="surface entry-view" id="entry-view" aria-labelledby="form-title">
+      <section
+        class="surface access-loading-view"
+        id="access-loading-view"
+        aria-live="polite"
+      >
+        <p>A verificar o acesso…</p>
+      </section>
+
+      <section
+        class="surface auth-view"
+        id="auth-view"
+        aria-labelledby="auth-title"
+        hidden
+      >
+        <p class="eyebrow">Acesso protegido</p>
+        <h2 id="auth-title">Introduza a palavra-passe</h2>
+        <p class="auth-intro">
+          Só precisa de a introduzir uma vez neste telemóvel.
+        </p>
+
+        <form id="password-form" novalidate>
+          <div class="field-group">
+            <label for="site-password">Palavra-passe</label>
+            <input
+              id="site-password"
+              name="site-password"
+              type="password"
+              autocomplete="current-password"
+              autocapitalize="none"
+              spellcheck="false"
+              aria-describedby="password-error"
+              required
+            />
+            <p
+              class="field-error"
+              id="password-error"
+              role="alert"
+              hidden
+            ></p>
+          </div>
+
+          <button
+            class="button button-primary"
+            id="password-submit-button"
+            type="submit"
+          >
+            <span class="button-label">Entrar</span>
+            <span class="spinner" aria-hidden="true" hidden></span>
+          </button>
+        </form>
+      </section>
+
+      <section
+        class="surface entry-view"
+        id="entry-view"
+        aria-labelledby="form-title"
+        hidden
+      >
         <h2 class="visually-hidden" id="form-title">Preparar uma transcrição</h2>
         <form id="transcription-form" novalidate>
           <div class="field-group">

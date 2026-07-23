@@ -21,6 +21,13 @@ test("ships an accessible Portuguese mobile transcription interface", () => {
   assert.match(html, /<html[^>]+lang="pt"/);
   assert.match(html, /name="viewport"/);
   assert.match(html, /rel="icon"[^>]+href="\/favicon\.svg"/);
+  assert.match(html, /<form[^>]+id="password-form"[^>]+novalidate/);
+  assert.match(html, /<label[^>]+for="site-password"/);
+  assert.match(
+    html,
+    /<input[^>]+id="site-password"[^>]+name="site-password"[^>]+type="password"[^>]+autocomplete="current-password"/,
+  );
+  assert.match(html, /id="password-error"[^>]+role="alert"/);
   assert.match(html, /<label[^>]+for="youtube-url"/);
   assert.match(html, /<input[^>]+id="youtube-url"[^>]+name="youtube-url"/);
   assert.match(html, /<button[^>]+type="submit"[^>]*>[^<]*<span[^>]*>Transcrever/);
@@ -35,8 +42,12 @@ test("ships an accessible Portuguese mobile transcription interface", () => {
   assert.match(styles, /@media\s*\(max-width:\s*24rem\)/);
   assert.match(styles, /@media\s*\(prefers-reduced-motion:\s*reduce\)/);
 
-  assert.match(script, /location\.hash/);
-  assert.match(script, /x-family-token/);
+  assert.match(script, /fetch\("\/api\/session"/);
+  assert.match(script, /credentials:\s*"same-origin"/);
+  assert.doesNotMatch(script, /localStorage/);
+  assert.doesNotMatch(script, /sessionStorage/);
+  assert.match(script, /history\.replaceState/);
+  assert.doesNotMatch(script, /x-family-token/);
   assert.match(script, /navigator\.share/);
   assert.match(script, /execCommand\("copy"\)/);
   assert.match(script, /textContent\s*=/);

@@ -47,13 +47,37 @@ export async function runLocalAcceptance(
       throw new Error("O servidor local não indicou uma porta válida.");
     }
 
+    const loginResponse = await fetch(
+      `http://127.0.0.1:${address.port}/api/session`,
+      {
+        body: JSON.stringify({
+          password: options.configuration.sitePassword,
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
+    );
+    if (!loginResponse.ok) {
+      throw new Error(
+        `A aceitação falhou ao iniciar a sessão (${loginResponse.status}).`,
+      );
+    }
+    const sessionCookie = loginResponse.headers
+      .get("set-cookie")
+      ?.split(";", 1)[0];
+    if (sessionCookie === undefined) {
+      throw new Error("A aceitação falhou: a sessão não devolveu um cookie.");
+    }
+
     const response = await fetch(
       `http://127.0.0.1:${address.port}/api/transcriptions`,
       {
         body: JSON.stringify({ url: options.videoUrl }),
         headers: {
+          cookie: sessionCookie,
           "content-type": "application/json",
-          "x-family-token": options.configuration.familyAccessToken,
         },
         method: "POST",
       },

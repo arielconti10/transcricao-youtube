@@ -19,6 +19,8 @@ interface NodeServerOptions {
   trustProxy: boolean;
 }
 
+const API_PATHS = new Set(["/api/session", "/api/transcriptions"]);
+
 const SECURITY_HEADERS = {
   "content-security-policy": [
     "default-src 'self'",
@@ -169,39 +171,44 @@ export function createNodeServer(options: NodeServerOptions): Server {
         return;
       }
 
-      if (
-        requestUrl.pathname === "/api/transcriptions" &&
-        request.method === "POST"
-      ) {
-        let body: Buffer;
-        try {
-          body = await readBody(request);
-        } catch (error) {
-          if (error instanceof RequestTooLargeError) {
-            await sendWebResponse(
-              Response.json(
-                {
-                  error: {
-                    code: "REQUEST_TOO_LARGE",
-                    message: "O pedido é demasiado grande.",
-                  },
-                },
-                { status: 413 },
-              ),
-              response,
-            );
-            return;
-          }
-          throw error;
-        }
+      if (API_PATHS.has(requestUrl.pathname)) {
         const headers = createRequestHeaders(request);
         const origin = `http://${headers.get("host") ?? "localhost"}`;
+        let body: Buffer | undefined;
+        if (request.method !== "GET" && request.method !== "HEAD") {
+          try {
+            body = await readBody(request);
+          } catch (error) {
+            if (error instanceof RequestTooLargeError) {
+              await sendWebResponse(
+                Response.json(
+                  {
+                    error: {
+                      code: "REQUEST_TOO_LARGE",
+                      message: "O pedido é demasiado grande.",
+                    },
+                  },
+                  {
+                    headers: { "cache-control": "no-store" },
+                    status: 413,
+                  },
+                ),
+                response,
+              );
+              return;
+            }
+            throw error;
+          }
+        }
         const webRequest = new Request(
-          new URL(request.url ?? "/api/transcriptions", origin),
+          new URL(request.url ?? requestUrl.pathname, origin),
           {
-            body: new Uint8Array(body),
+            body:
+              body !== undefined && body.byteLength > 0
+                ? new Uint8Array(body)
+                : undefined,
             headers,
-            method: "POST",
+            method: request.method,
           },
         );
         const webResponse = await options.app.handle(webRequest, {

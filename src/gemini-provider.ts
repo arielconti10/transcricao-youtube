@@ -73,6 +73,16 @@ export function parseGeminiResponse(payload: unknown): TranscriptResult {
   }
 
   const candidate = payload.candidates[0];
+  if (
+    isRecord(candidate) &&
+    candidate.finishReason === "MALFORMED_RESPONSE"
+  ) {
+    throw new GeminiProviderError(
+      "PROVIDER_MALFORMED_RESPONSE",
+      "Gemini returned a malformed response.",
+    );
+  }
+
   if (!isRecord(candidate) || !isRecord(candidate.content)) {
     throw new Error("Gemini returned an invalid response.");
   }
@@ -120,58 +130,87 @@ export function createGeminiProvider(
   const fetchImpl = config.fetchImpl ?? fetch;
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent`;
 
+  async function transcribeOnce(videoUrl: string): Promise<TranscriptResult> {
+    let response: Response;
+
+    try {
+      response = await fetchImpl(endpoint, {
+        body: JSON.stringify(buildGeminiRequest(videoUrl)),
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": config.apiKey,
+        },
+        method: "POST",
+        signal: AbortSignal.timeout(config.timeoutMs),
+      });
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (error.name === "TimeoutError" || error.name === "AbortError")
+      ) {
+        throw new GeminiProviderError(
+          "PROVIDER_TIMEOUT",
+          "Gemini transcription timed out.",
+        );
+      }
+
+      throw error;
+    }
+
+    const payload: unknown = await response.json();
+
+    if (response.status === 429) {
+      throw new GeminiProviderError(
+        "PROVIDER_RATE_LIMIT",
+        "Gemini rate limit reached.",
+      );
+    }
+
+    if (response.status === 400 || response.status === 404) {
+      throw new GeminiProviderError(
+        "VIDEO_UNAVAILABLE",
+        "Gemini could not access the YouTube video.",
+      );
+    }
+
+    if (!response.ok) {
+      throw new GeminiProviderError(
+        "PROVIDER_UNAVAILABLE",
+        "Gemini is temporarily unavailable.",
+      );
+    }
+
+    return parseGeminiResponse(payload);
+  }
+
   return {
     async transcribe(videoUrl) {
-      let response: Response;
-
       try {
-        response = await fetchImpl(endpoint, {
-          body: JSON.stringify(buildGeminiRequest(videoUrl)),
-          headers: {
-            "content-type": "application/json",
-            "x-goog-api-key": config.apiKey,
-          },
-          method: "POST",
-          signal: AbortSignal.timeout(config.timeoutMs),
-        });
+        return await transcribeOnce(videoUrl);
       } catch (error) {
         if (
-          error instanceof DOMException &&
-          (error.name === "TimeoutError" || error.name === "AbortError")
+          error instanceof GeminiProviderError &&
+          error.code === "PROVIDER_MALFORMED_RESPONSE"
         ) {
-          throw new GeminiProviderError(
-            "PROVIDER_TIMEOUT",
-            "Gemini transcription timed out.",
-          );
+          try {
+            return await transcribeOnce(videoUrl);
+          } catch (retryError) {
+            if (
+              retryError instanceof GeminiProviderError &&
+              retryError.code === "PROVIDER_MALFORMED_RESPONSE"
+            ) {
+              throw new GeminiProviderError(
+                "PROVIDER_UNAVAILABLE",
+                "Gemini returned malformed responses twice.",
+              );
+            }
+
+            throw retryError;
+          }
         }
 
         throw error;
       }
-
-      const payload: unknown = await response.json();
-
-      if (response.status === 429) {
-        throw new GeminiProviderError(
-          "PROVIDER_RATE_LIMIT",
-          "Gemini rate limit reached.",
-        );
-      }
-
-      if (response.status === 400 || response.status === 404) {
-        throw new GeminiProviderError(
-          "VIDEO_UNAVAILABLE",
-          "Gemini could not access the YouTube video.",
-        );
-      }
-
-      if (!response.ok) {
-        throw new GeminiProviderError(
-          "PROVIDER_UNAVAILABLE",
-          "Gemini is temporarily unavailable.",
-        );
-      }
-
-      return parseGeminiResponse(payload);
     },
   };
 }

@@ -165,15 +165,33 @@ h2 {
   box-shadow: var(--shadow), 0 0 0 1px var(--line);
 }
 
+.access-loading-view,
+.auth-view,
 .entry-view,
 .error-view,
 .result-view {
   padding: 1.25rem;
 }
 
+#password-form,
 #transcription-form {
   display: grid;
   gap: 1.25rem;
+}
+
+.access-loading-view p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.auth-intro {
+  margin-bottom: 1.25rem;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .field-group {
@@ -227,6 +245,13 @@ input:disabled {
 
 .field-help {
   margin-bottom: 0;
+}
+
+.field-error {
+  margin-bottom: 0;
+  color: var(--danger);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .button {
@@ -417,6 +442,8 @@ input:disabled {
     height: 2.75rem;
   }
 
+  .access-loading-view,
+  .auth-view,
   .entry-view,
   .error-view,
   .result-view {
@@ -442,6 +469,8 @@ input:disabled {
     padding-top: 3rem;
   }
 
+  .access-loading-view,
+  .auth-view,
   .entry-view,
   .error-view,
   .result-view {

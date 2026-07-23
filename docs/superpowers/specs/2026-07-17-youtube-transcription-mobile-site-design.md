@@ -29,7 +29,7 @@ The site must work comfortably on an older Android phone. The phone only submits
 - A readable transcript with **Copiar**, **Compartilhar**, and **Nova transcrição** actions.
 - A clipboard fallback when Android's native sharing capability is unavailable.
 - Clear Portuguese loading and error messages.
-- Anonymous access through a bookmarked family link, with no login form.
+- Shared-password access through a simple mobile password screen, with no user account.
 - Server-side access controls, rate limits, and spend safeguards.
 
 ### Excluded from the first version
@@ -45,7 +45,13 @@ The site must work comfortably on an older Android phone. The phone only submits
 
 ### Entry state
 
-The page contains:
+On a telemóvel without an active session, the page first contains:
+
+- One password field labeled **Palavra-passe**.
+- One full-width **Entrar** button.
+- A note explaining that the password is only needed once on that telemóvel.
+
+After access is confirmed, the page contains:
 
 - A short title explaining the purpose in Portuguese.
 - One large URL field labeled **Cole o link do vídeo do YouTube**.
@@ -70,10 +76,11 @@ No video URL, transcript, or history remains after the page is refreshed.
 
 ## Architecture
 
-The product is one lightweight TypeScript web application with two boundaries:
+The product is one lightweight TypeScript web application with three boundaries:
 
 1. **Mobile web client** — static HTML, CSS, and minimal JavaScript for form submission, state changes, copying, and sharing.
-2. **Transcription endpoint** — a server-side `POST /api/transcriptions` handler that validates the request and calls the Gemini API.
+2. **Session endpoint** — a server-side `GET/POST/DELETE /api/session` handler that verifies the shared password and manages the secure session cookie.
+3. **Transcription endpoint** — a server-side `POST /api/transcriptions` handler that validates the request and calls the Gemini API.
 
 The implementation should avoid a large client-side framework runtime. The browser bundle must stay small and use broadly supported web APIs suitable for an older Android Chrome installation.
 
@@ -91,24 +98,27 @@ The provider integration sits behind a small internal interface so the API or mo
 
 ### Request flow
 
-1. The client checks that the field is not empty and submits the URL.
-2. The server accepts only HTTPS YouTube hosts and rejects malformed or unexpected URLs.
-3. The server checks the family access token, per-client rate limit, request concurrency, and global daily spend guard.
-4. The server calls Gemini with the fixed transcription instructions and the submitted public video URL.
-5. The server normalizes whitespace, enforces an output-size ceiling, and returns plain text as JSON.
-6. The client renders the text using text-only DOM APIs; provider output is never interpreted as HTML.
+1. The client checks for an authenticated session and otherwise asks for the shared password.
+2. The server verifies the password and creates a secure, `HttpOnly`, same-site session cookie.
+3. The client checks that the video field is not empty and submits the URL with the session cookie.
+4. The server accepts only HTTPS YouTube hosts and rejects malformed or unexpected URLs.
+5. The server checks the session, per-client rate limit, request concurrency, and global daily spend guard.
+6. The server calls Gemini with the fixed transcription instructions and the submitted public video URL.
+7. The server normalizes whitespace, enforces an output-size ceiling, and returns plain text as JSON.
+8. The client renders the text using text-only DOM APIs; provider output is never interpreted as HTML.
 
 ## Access, privacy, and cost control
 
 - The Gemini API key exists only as a server environment variable.
-- The bookmarked family URL contains a high-entropy access token in its URL fragment. Fragments are not sent in ordinary HTTP requests or referrer headers. The client sends the token to the endpoint in a request header.
-- The endpoint rejects missing or incorrect access tokens using constant-time comparison where the runtime supports it.
-- Rate limiting applies per network address and globally. Only one transcription may run concurrently for the family token in the first version.
+- The shared password exists only as a server secret and is submitted over HTTPS. It never appears in the URL, browser storage, or session cookie.
+- Password and session comparisons use fixed-length digests and constant-time comparison. The session cookie is `HttpOnly`, `SameSite=Strict`, and `Secure` in production.
+- Changing the configured password invalidates all existing sessions.
+- Rate limiting applies per network address and globally. Only one transcription may run concurrently in the first version.
 - A daily request or spend ceiling stops unexpected usage. Exceeding it produces a friendly Portuguese message rather than additional charges.
-- Application logs contain request IDs, durations, and coarse error categories only. They do not contain video URLs, prompts, transcripts, access tokens, or API keys.
-- The application does not use cookies, analytics, advertising, or a content database. A minimal server-side store may keep only hashed, short-lived counters needed for rate limiting and the daily spend guard.
+- Application logs contain request IDs, durations, and coarse error categories only. They do not contain video URLs, prompts, transcripts, passwords, session values, or API keys.
+- The application does not use analytics, advertising, or a content database. It uses only the authentication cookie and may keep hashed, short-lived counters needed for rate limiting and the daily spend guard.
 
-The family link is a convenience safeguard, not strong identity verification. Anyone who receives it can use the tool until the token is rotated.
+The shared password is a convenience safeguard, not individual identity verification. Anyone who receives it can use the tool until the password is changed.
 
 ## Failure handling
 
@@ -131,7 +141,7 @@ Requests have an explicit timeout and are not retried automatically after transc
 ### Automated tests
 
 - URL parsing and allow-list validation for standard, shortened, mobile, Shorts, and malformed links.
-- Access-token, rate-limit, concurrency, timeout, output-size, and error-mapping behavior.
+- Password-session, rate-limit, concurrency, timeout, output-size, and error-mapping behavior.
 - Provider prompt construction and response normalization using a fake provider.
 - Client state transitions for idle, processing, result, and error states.
 - Copy behavior and the fallback used when `navigator.share` or the Clipboard API is missing.
@@ -152,7 +162,7 @@ Requests have an explicit timeout and are not retried automatically after transc
 The application is deployed over HTTPS as a single web service with secrets configured through the hosting platform. Required production configuration:
 
 - `GEMINI_API_KEY`
-- `FAMILY_ACCESS_TOKEN`
+- `SITE_PASSWORD`
 - rate-limit and daily-budget settings
 - a small counter store when the hosting platform does not provide native rate and concurrency controls
 - the selected Gemini model name, kept configurable without a code change
@@ -161,13 +171,13 @@ The first deployment starts on Gemini's currently available YouTube-URL feature.
 
 ## Acceptance checklist
 
-- A bookmarked family link opens directly to the Portuguese form with no login.
+- The normal Worker URL shows the Portuguese password screen when no session exists.
 - A valid public Portuguese YouTube link produces a full plain-text transcript without timestamps.
 - The workflow is usable with one hand on an older Android-sized screen.
 - Copy works even when native sharing and modern Clipboard APIs are unavailable.
 - Invalid or unsupported videos never expose technical error details.
 - Refreshing the page removes the current URL and transcript.
-- Provider secrets and the configured family token do not appear in shipped source bundles; submitted URLs and transcript contents do not appear in application logs.
+- Provider secrets and the configured site password do not appear in shipped source bundles; submitted URLs and transcript contents do not appear in application logs.
 - Automated tests pass and the complete flow is verified against real public videos before handoff.
 
 ## References

@@ -12,7 +12,7 @@ test("ships a local runtime entrypoint without printing configured secrets", () 
   assert.match(source, /loadConfig/);
   assert.match(source, /createRuntime/);
   assert.match(source, /server\.listen/);
-  assert.doesNotMatch(source, /console\.(?:log|info)\([^\n]*familyAccessToken/);
+  assert.doesNotMatch(source, /console\.(?:log|info)\([^\n]*sitePassword/);
 });
 
 test("ships an acceptance entrypoint that never prints configured secrets", () => {
@@ -20,5 +20,5 @@ test("ships an acceptance entrypoint that never prints configured secrets", () =
   const source = readFileSync(acceptanceEntrypoint, "utf8");
 
   assert.match(source, /runLocalAcceptance/);
-  assert.doesNotMatch(source, /console\.(?:log|info)\([^\n]*(?:geminiApiKey|familyAccessToken)/);
+  assert.doesNotMatch(source, /console\.(?:log|info)\([^\n]*(?:geminiApiKey|sitePassword)/);
 });

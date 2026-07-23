@@ -1,5 +1,4 @@
 export interface AppConfiguration {
-  familyAccessToken: string;
   geminiApiKey: string;
   geminiModel: string;
   host: string;
@@ -9,6 +8,7 @@ export interface AppConfiguration {
   maxTranscriptCharacters: number;
   port: number;
   providerTimeoutMs: number;
+  sitePassword: string;
   trustProxy: boolean;
 }
 
@@ -36,14 +36,13 @@ export function loadConfig(
     throw new Error("GEMINI_API_KEY is required.");
   }
 
-  if (!environment.FAMILY_ACCESS_TOKEN) {
-    throw new Error("FAMILY_ACCESS_TOKEN is required.");
+  if (!environment.SITE_PASSWORD) {
+    throw new Error("SITE_PASSWORD is required.");
   }
 
   return {
-    familyAccessToken: environment.FAMILY_ACCESS_TOKEN,
     geminiApiKey: environment.GEMINI_API_KEY,
-    geminiModel: environment.GEMINI_MODEL ?? "gemini-3.5-flash",
+    geminiModel: environment.GEMINI_MODEL ?? "gemini-3.6-flash",
     host: environment.HOST ?? "127.0.0.1",
     maxConcurrent: numericSetting(
       "MAX_CONCURRENT_TRANSCRIPTIONS",
@@ -71,6 +70,7 @@ export function loadConfig(
       environment.PROVIDER_TIMEOUT_MS,
       300_000,
     ),
+    sitePassword: environment.SITE_PASSWORD,
     trustProxy: environment.TRUST_PROXY === "true",
   };
 }

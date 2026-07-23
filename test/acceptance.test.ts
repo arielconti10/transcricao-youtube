@@ -5,7 +5,6 @@ import { runLocalAcceptance } from "../src/acceptance.ts";
 import type { AppConfiguration } from "../src/config.ts";
 
 const configuration: AppConfiguration = {
-  familyAccessToken: "family-secret",
   geminiApiKey: "gemini-api-key",
   geminiModel: "gemini-test",
   host: "127.0.0.1",
@@ -15,6 +14,7 @@ const configuration: AppConfiguration = {
   maxTranscriptCharacters: 400_000,
   port: 0,
   providerTimeoutMs: 1_000,
+  sitePassword: "site-secret",
   trustProxy: false,
 };
 
