@@ -115,6 +115,60 @@ test("reports unplayable videos as unavailable", () => {
   );
 });
 
+test("detects upfront when the owner disabled playback outside YouTube", () => {
+  assert.throws(
+    () =>
+      parsePlayerResponse({
+        playabilityStatus: {
+          status: "UNPLAYABLE",
+          reason:
+            "Playback on other websites has been disabled by the video owner",
+        },
+      }),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "EMBEDDING_DISABLED",
+  );
+  assert.throws(
+    () =>
+      parsePlayerResponse({
+        playabilityStatus: {
+          status: "UNPLAYABLE",
+          errorScreen: {
+            playerErrorMessageRenderer: {
+              subreason: {
+                runs: [
+                  {
+                    text: "Playback on other websites has been disabled by the video owner",
+                  },
+                ],
+              },
+            },
+          },
+        },
+      }),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "EMBEDDING_DISABLED",
+  );
+  assert.throws(
+    () =>
+      parsePlayerResponse({
+        playabilityStatus: {
+          status: "UNPLAYABLE",
+          playableInEmbed: false,
+          reason: "Video unavailable",
+        },
+      }),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "EMBEDDING_DISABLED",
+  );
+});
+
 test("downloads the chosen audio track through the embedded player", async () => {
   const calls: Array<{ input: string; init?: RequestInit }> = [];
   const fetchImpl = async (
