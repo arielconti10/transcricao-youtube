@@ -735,6 +735,33 @@ test("reports an unavailable video when the audio fallback also fails", async ()
   );
 });
 
+test("reports when the owner disabled playback outside YouTube", async () => {
+  const fetchImpl = (async () =>
+    geminiErrorResponse(400, "The video could not be fetched.")) as typeof fetch;
+  const provider = createGeminiProvider({
+    apiKey: "test-api-key",
+    audioSource: {
+      async fetchAudio() {
+        throw new YouTubeAudioError(
+          "EMBEDDING_DISABLED",
+          "The video owner disabled playback outside YouTube.",
+        );
+      },
+    },
+    fetchImpl,
+    model: "gemini-test",
+    timeoutMs: 1_000,
+  });
+
+  await assert.rejects(
+    provider.transcribe("https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "EMBEDDING_DISABLED",
+  );
+});
+
 test("maps an oversized audio track from the fallback to a too-long error", async () => {
   const fetchImpl = (async () =>
     geminiErrorResponse(400, "The video could not be fetched.")) as typeof fetch;
