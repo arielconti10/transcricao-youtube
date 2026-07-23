@@ -88,8 +88,9 @@ Vídeos públicos são enviados à Gemini pelo próprio link. Para vídeos não
 listados, o servidor descarrega apenas a faixa de áudio, envia-a à Gemini como
 um ficheiro temporário e apaga esse ficheiro logo a seguir — o áudio não fica
 guardado. O tamanho máximo dessa faixa de áudio pode ser ajustado com
-`MAX_AUDIO_BYTES` no `.env`. Vídeos privados ou indisponíveis devolvem uma
-mensagem simples no site.
+`MAX_AUDIO_BYTES` no `.env`. Vídeos privados, indisponíveis ou com a
+reprodução fora do YouTube desativada pelo autor devolvem uma mensagem simples
+no site.
 
 ## Publicar no Cloudflare Workers
 
