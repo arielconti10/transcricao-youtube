@@ -21,6 +21,10 @@ const PROVIDER_ERROR_RESPONSES: Record<
   string,
   { message: string; status: number }
 > = {
+  EMBEDDING_DISABLED: {
+    message: "O autor deste vídeo não permite a reprodução fora do YouTube.",
+    status: 422,
+  },
   NO_SPEECH: {
     message: "Não conseguimos encontrar fala clara neste vídeo.",
     status: 422,
