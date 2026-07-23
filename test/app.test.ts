@@ -121,14 +121,30 @@ test("returns a safe error for malformed JSON", async () => {
 test("maps provider failures to safe Portuguese responses", async () => {
   const cases = [
     {
+      code: "EMBEDDING_DISABLED",
+      message: "O autor deste vídeo não permite a reprodução fora do YouTube.",
+      status: 422,
+    },
+    {
       code: "VIDEO_UNAVAILABLE",
-      message: "Não conseguimos acessar este vídeo. Confirme que ele é público.",
+      message:
+        "Não conseguimos acessar este vídeo. Confirme que o link está correto e que o vídeo não é privado.",
+      status: 422,
+    },
+    {
+      code: "VIDEO_TOO_LONG",
+      message: "Este vídeo é demasiado longo para transcrever.",
       status: 422,
     },
     {
       code: "NO_SPEECH",
       message: "Não conseguimos encontrar fala clara neste vídeo.",
       status: 422,
+    },
+    {
+      code: "SOURCE_TIMEOUT",
+      message: "A transcrição demorou demais. Tente novamente.",
+      status: 504,
     },
     {
       code: "PROVIDER_TIMEOUT",

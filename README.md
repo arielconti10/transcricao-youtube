@@ -1,8 +1,9 @@
 # Transcrição fácil
 
-Um site móvel simples, em português, que transforma a fala de um vídeo público
-do YouTube numa transcrição limpa. Funciona mesmo quando o vídeo não tem
-legendas, não exige conta e não guarda o link nem a transcrição.
+Um site móvel simples, em português, que transforma a fala de um vídeo
+público ou não listado do YouTube numa transcrição limpa. Funciona mesmo
+quando o vídeo não tem legendas, não exige conta e não guarda o link nem a
+transcrição.
 
 ## O que é necessário
 
@@ -83,8 +84,13 @@ Por predefinição, o servidor aceita uma transcrição de cada vez, seis pedido
 por hora por visitante e vinte pedidos por dia no total. Estes valores podem ser
 alterados no `.env`; todas as opções estão documentadas em `.env.example`.
 
-A Gemini só consegue analisar vídeos públicos do YouTube. Vídeos privados ou
-indisponíveis devolvem uma mensagem simples no site.
+Vídeos públicos são enviados à Gemini pelo próprio link. Para vídeos não
+listados, o servidor descarrega apenas a faixa de áudio, envia-a à Gemini como
+um ficheiro temporário e apaga esse ficheiro logo a seguir — o áudio não fica
+guardado. O tamanho máximo dessa faixa de áudio pode ser ajustado com
+`MAX_AUDIO_BYTES` no `.env`. Vídeos privados, indisponíveis ou com a
+reprodução fora do YouTube desativada pelo autor devolvem uma mensagem simples
+no site.
 
 ## Publicar no Cloudflare Workers
 

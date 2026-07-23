@@ -2,6 +2,7 @@ export interface AppConfiguration {
   geminiApiKey: string;
   geminiModel: string;
   host: string;
+  maxAudioBytes: number;
   maxConcurrent: number;
   maxPerClientPerHour: number;
   maxPerDay: number;
@@ -44,6 +45,11 @@ export function loadConfig(
     geminiApiKey: environment.GEMINI_API_KEY,
     geminiModel: environment.GEMINI_MODEL ?? "gemini-3.6-flash",
     host: environment.HOST ?? "127.0.0.1",
+    maxAudioBytes: numericSetting(
+      "MAX_AUDIO_BYTES",
+      environment.MAX_AUDIO_BYTES,
+      100_000_000,
+    ),
     maxConcurrent: numericSetting(
       "MAX_CONCURRENT_TRANSCRIPTIONS",
       environment.MAX_CONCURRENT_TRANSCRIPTIONS,

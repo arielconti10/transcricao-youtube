@@ -4,6 +4,7 @@ import { createGeminiProvider } from "./gemini-provider.ts";
 import { createNodeServer } from "./server.ts";
 import { createProtectedApp } from "./session-auth.ts";
 import { createUsageGuard } from "./usage-guard.ts";
+import { createYouTubeAudioSource } from "./youtube-audio.ts";
 
 interface RuntimeOptions {
   fetchImpl?: typeof fetch;
@@ -16,6 +17,11 @@ export function createRuntime(
 ) {
   const provider = createGeminiProvider({
     apiKey: config.geminiApiKey,
+    audioSource: createYouTubeAudioSource({
+      fetchImpl: options.fetchImpl,
+      maxBytes: config.maxAudioBytes,
+      timeoutMs: config.providerTimeoutMs,
+    }),
     fetchImpl: options.fetchImpl,
     model: config.geminiModel,
     timeoutMs: config.providerTimeoutMs,
